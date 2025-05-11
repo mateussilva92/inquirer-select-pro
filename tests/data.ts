@@ -166,7 +166,7 @@ export const remoteData = () =>
   });
 
 const indexedFilms = new Index({
-  charset: 'latin:advanced',
+  encoder: 'LatinAdvanced',
   tokenize: 'reverse',
   cache: true,
 });

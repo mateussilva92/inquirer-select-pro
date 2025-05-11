@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@inquirer/testing';
 import spinners from 'cli-spinners';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type SelectOption,
   type SelectProps,
@@ -59,7 +59,10 @@ describe('inquirer-select-pro', () => {
     return spinners.dots.frames.includes(getScreen()[0]);
   }
 
-  const waitForInteraction = () => vi.waitUntil(() => getScreen()[0] === '?');
+  const waitForInteraction = async () => {
+    await wait(300); // debounce delay done by inquirer
+    return vi.waitUntil(() => getScreen()[0] === '?');
+  };
 
   describe('interactions', () => {
     // common interactions
@@ -104,17 +107,19 @@ describe('inquirer-select-pro', () => {
       expect(getScreen()).toMatchSnapshot();
       await interactInMutipleMode();
       await expect(answer).resolves.toMatchInlineSnapshot(`[]`);
-      expect(getScreen()).toMatchInlineSnapshot(`"? Choose movie:"`);
+      expect(getScreen()).toMatchInlineSnapshot('"✔ Choose movie:"');
     });
 
     it('should work when options is an async function', async () => {
-      const options = vi.fn(createRemoteData(100, 300));
+      const options = vi.fn(createRemoteData(400, 500));
       await renderPrompt({
         message,
         options,
         pageSize: 4,
         inputDelay: 50,
       });
+      expect(isLoading()).toBe(false);
+      await wait(300); // debounce delay done by inquirer
       expect(isLoading()).toBe(true);
       await waitForInteraction();
       expect(getScreen()).toMatchSnapshot();
@@ -125,6 +130,8 @@ describe('inquirer-select-pro', () => {
           // debounce delay
           await wait(100);
           expect(options).toHaveBeenCalledTimes(2);
+          expect(isLoading()).toBe(false);
+          await wait(300);
           // shoud be loading
           expect(isLoading()).toBe(true);
           await waitForInteraction();
@@ -137,7 +144,7 @@ describe('inquirer-select-pro', () => {
         ]
       `);
       expect(getScreen()).toMatchInlineSnapshot(
-        `"? Choose movie: 12 Angry Men (1957)"`,
+        `"✔ Choose movie: 12 Angry Men (1957)"`,
       );
     });
     it('should work when options is a function and filter disabled', async () => {
@@ -162,7 +169,6 @@ describe('inquirer-select-pro', () => {
       });
       await waitForInteraction();
       events.type('god');
-      await wait(10);
       await waitForInteraction();
       events.keypress('tab');
       expect(getScreen()).toMatchSnapshot();
@@ -180,7 +186,7 @@ describe('inquirer-select-pro', () => {
         `"The Shawshank Redemption"`,
       );
       expect(getScreen()).toMatchInlineSnapshot(
-        `"? Choose movie: The Shawshank Redemption (1994)"`,
+        '"✔ Choose movie: The Shawshank Redemption (1994)"',
       );
     });
 
@@ -200,7 +206,7 @@ describe('inquirer-select-pro', () => {
 ]`,
       );
       expect(getScreen()).toMatchInlineSnapshot(
-        `"? Choose movie: The Shawshank Redemption (1994)"`,
+        '"✔ Choose movie: The Shawshank Redemption (1994)"',
       );
     });
 
@@ -212,7 +218,7 @@ describe('inquirer-select-pro', () => {
         pageSize: 3,
         inputDelay: 20,
       });
-      expect(isLoading()).toBe(true);
+      expect(isLoading()).toBe(false);
       await waitForInteraction();
       expect(getScreen()).toMatchSnapshot();
       events.type('god');
@@ -221,7 +227,7 @@ describe('inquirer-select-pro', () => {
       events.keypress('enter');
       expect(await answer).toMatchInlineSnapshot(`"The Godfather"`);
       expect(getScreen()).toMatchInlineSnapshot(
-        `"? Choose movie: The Godfather (1972)"`,
+        `"✔ Choose movie: The Godfather (1972)"`,
       );
     });
 
@@ -253,7 +259,6 @@ describe('inquirer-select-pro', () => {
       });
       await waitForInteraction();
       events.type('any keys');
-      await wait(20);
       await waitForInteraction();
       events.keypress('enter');
       const origin = getScreen();
@@ -284,11 +289,9 @@ describe('inquirer-select-pro', () => {
       events.keypress({ name: 'a', ctrl: true });
       expect(getScreen()).toMatchSnapshot();
       events.type('ab');
-      await wait(25);
       await waitForInteraction();
       events.keypress({ name: 'a', ctrl: true });
       keyseq('backspace', 2);
-      await wait(25);
       await waitForInteraction();
       events.keypress({ name: 'a', ctrl: true });
       events.keypress('down');
@@ -420,10 +423,9 @@ describe('inquirer-select-pro', () => {
         emptyText,
         inputDelay: 10,
       });
-      expect(isLoading()).toBe(true);
+      expect(isLoading()).toBe(false);
       await waitForInteraction();
       events.type('any keys i want');
-      await wait(20);
       await waitForInteraction();
       expect(getScreen().includes(emptyText)).toBe(true);
     });
@@ -472,7 +474,6 @@ describe('inquirer-select-pro', () => {
       await waitForInteraction();
       expect(getScreen()).toMatchSnapshot();
       events.type('mo');
-      await wait(10);
       await waitForInteraction();
       expect(getScreen()).toMatchSnapshot();
     });
@@ -520,7 +521,6 @@ describe('inquirer-select-pro', () => {
          [✔] [object Object]"
       `);
       events.type('c');
-      await wait(10);
       await waitForInteraction();
       expect(getScreen()).toMatchInlineSnapshot(`
         "? Choose movie:
@@ -587,7 +587,6 @@ describe('inquirer-select-pro', () => {
       });
       await waitForInteraction();
       events.type('1');
-      await wait(10);
       await waitForInteraction();
       // filter
       expect(getScreen()).toMatchInlineSnapshot(`

@@ -1,15 +1,16 @@
 import {
   Separator,
+  type Status,
   createPrompt,
   makeTheme,
   useMemo,
   usePagination,
   usePrefix,
 } from '@inquirer/core';
-import chalk from 'chalk';
 import figures from '@inquirer/figures';
 import ansiEscapes from 'ansi-escapes';
-import { useSelect } from './useSelect';
+import chalk from 'chalk';
+import stripAnsi from 'strip-ansi';
 import {
   type InternalSelectItem,
   type SelectContext,
@@ -18,6 +19,21 @@ import {
   type SelectTheme,
   type SelectValue,
 } from './types';
+import { useSelect } from './useSelect';
+
+const statusMapper = (status: SelectStatus): Status => {
+  switch (status) {
+    case SelectStatus.UNLOADED:
+    case SelectStatus.FILTERING:
+      return 'loading';
+
+    case SelectStatus.LOADED:
+      return 'idle';
+
+    case SelectStatus.SUBMITTED:
+      return 'done';
+  }
+};
 
 /**
  * default theme
@@ -168,11 +184,15 @@ function renderFilterInput<Value>(
   answer: string,
 ) {
   if (status === SelectStatus.UNLOADED) return '';
+
+  // remove color codes because inquirer moved from chalk to yoctocolors which adds color codes to empty strings
+  const textAnswer = stripAnsi(answer);
+
   let input = `\n${theme.icon.inputCursor} `;
-  if (!answer && !filterInput) {
+  if (!textAnswer && !filterInput) {
     input += theme.style.placeholder(placeholder);
   } else {
-    input += `${answer ? `${answer} ` : ''}${filterInput}`;
+    input += `${textAnswer ? `${answer} ` : ''}${filterInput}`;
   }
   if (confirmDelete) {
     input +=
@@ -200,7 +220,9 @@ function renderFilterInput<Value>(
  * });
  * ```
  */
-export const select = createPrompt(
+export const select: <Value, Multiple extends boolean = true>(
+  props: SelectProps<Value, Multiple>,
+) => Promise<SelectValue<Value, Multiple>> = createPrompt(
   <Value, Multiple extends boolean = true>(
     props: SelectProps<Value, Multiple>,
     done: (value: SelectValue<Value, Multiple>) => void,
@@ -234,12 +256,10 @@ export const select = createPrompt(
       icon: Object.assign(defaultTheme.icon, props.theme?.icon),
     });
 
-    const isLoading =
-      status === SelectStatus.UNLOADED || status === SelectStatus.FILTERING;
+    const inquirerStatus = statusMapper(status);
+    const prefix = usePrefix({ status: inquirerStatus, theme });
 
-    const prefix = usePrefix({ theme, isLoading });
-
-    const message = theme.style.message(props.message);
+    const message = theme.style.message(props.message, inquirerStatus);
 
     const answer = theme.style.answer(
       theme.style.renderSelectedOptions(selections, displayItems),

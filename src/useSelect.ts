@@ -1,5 +1,4 @@
 import {
-  type InquirerReadline,
   ValidationError,
   isBackspaceKey,
   isEnterKey,
@@ -9,6 +8,16 @@ import {
   useRef,
   useState,
 } from '@inquirer/core';
+import {
+  type InternalSelectItem,
+  type SelectBehaviors,
+  type SelectOption,
+  SelectStatus,
+  type SelectValue,
+  type SelectedOption,
+  type UseSelectOptions,
+  type UseSelectReturnValue,
+} from './types';
 import {
   check,
   isDirectionKey,
@@ -21,16 +30,7 @@ import {
   toggle,
   useDebounce,
 } from './utils';
-import {
-  type InternalSelectItem,
-  type SelectBehaviors,
-  type SelectOption,
-  SelectStatus,
-  type SelectValue,
-  type SelectedOption,
-  type UseSelectOptions,
-  type UseSelectReturnValue,
-} from './types';
+import type { InquirerReadline } from '@inquirer/type';
 
 function value2Name(value: any) {
   return typeof value === 'string' ||
